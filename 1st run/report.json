@@ -1,0 +1,40 @@
+{
+  "stack": {
+    "repo_url": "https://github.com/GetStream/Winds.git",
+    "local_path": "/var/folders/yd/m4l67tnn2ms_l_z5mltscmqh0000gn/T/repo_clone_4bjjkg8i",
+    "languages": {
+      "javascript": 255
+    },
+    "primary_language": "javascript",
+    "frameworks": [
+      "express",
+      "react"
+    ],
+    "databases": [
+      "mongodb",
+      "redis"
+    ],
+    "package_managers": [
+      "npm"
+    ],
+    "runtime_signals": [],
+    "has_tests": true,
+    "has_dockerfile": true,
+    "has_openapi": false,
+    "xml_data_files": 4,
+    "total_source_files": 255,
+    "loc_estimate": 142562
+  },
+  "findings": [],
+  "recommendations": [
+    {
+      "rationale": "No OpenAPI spec found; add one for auto-docs and contract testing.",
+      "affected_file": "/",
+      "suggested_fix": "Generate OpenAPI/Swagger for your API routes.",
+      "priority": "medium",
+      "impact_score": 38,
+      "finding_ref": null
+    }
+  ],
+  "deepfixes": []
+}

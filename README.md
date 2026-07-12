@@ -12,6 +12,11 @@ Built for the Hermes Agent Buildathon. Stack: OpenAI key + Hermes + one DigitalO
 - `control_plane/` — findings DB + live dashboard (FastAPI, port 8000)
 - `skills/`        — Hermes skills: benchmark, code-scan, fix-and-verify, pitfalls
 
+## VS Code integration with Hermes
+1. Install the Continue extension in VS Code.
+2. Install Ollama and run `./scripts/setup-hermes-vscode.sh` from this folder.
+3. Reload VS Code, open Chat, and select the Hermes Local model.
+
 ## Run (on the droplet)
 ```bash
 ./run_all.sh

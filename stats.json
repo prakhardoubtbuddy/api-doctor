@@ -1,0 +1,19 @@
+[
+  {
+    "run_name": "1st run",
+    "timestamp": "2026-07-12T14:28:03.942915",
+    "repo_url": "https://github.com/GetStream/Winds.git",
+    "primary_language": "javascript",
+    "frameworks": [
+      "express",
+      "react"
+    ],
+    "databases": [
+      "mongodb",
+      "redis"
+    ],
+    "findings": 0,
+    "recommendations": 1,
+    "deepfixes": 0
+  }
+]

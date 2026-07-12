@@ -1,0 +1,15 @@
+{
+  "models": [
+    {
+      "title": "Hermes Local",
+      "provider": "ollama",
+      "model": "hermes3:latest",
+      "roles": [
+        "chat",
+        "edit",
+        "apply"
+      ]
+    }
+  ],
+  "systemMessage": "You are Hermes, acting as a coding assistant for the API Doctor workspace. Prefer concise, practical fixes and explain tradeoffs briefly."
+}
