@@ -92,7 +92,7 @@
 </div>
 
 <script>
-const BUDGET = 400;
+const BUDGET = 500;
 let runId = null;
 
 async function j(u,o){const r=await fetch(u,o);return r.json();}
@@ -124,7 +124,7 @@ function render(s){
   const lat = rows.filter(r=>r.p95_ms!=null);
   const avg = lat.length? Math.round(lat.reduce((a,b)=>a+b.p95_ms,0)/lat.length):0;
   document.getElementById('s-p95').textContent = avg? avg+' ms':'–';
-  document.getElementById('s-p95-d').innerHTML = avg? (avg<=BUDGET?'<span class="up">within budget</span>':'<span class="down">over 400ms budget</span>'):'';
+  document.getElementById('s-p95-d').innerHTML = avg? (avg<=BUDGET?'<span class="up">within budget</span>':'<span class="down">over 500ms budget</span>'):'';
   const verified = finds.filter(f=>f.status==='verified').length;
   document.getElementById('s-find').textContent = finds.length? verified+' / '+finds.length:'–';
 

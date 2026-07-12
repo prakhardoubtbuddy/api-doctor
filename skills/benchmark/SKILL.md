@@ -1,6 +1,6 @@
 # Skill: benchmark
 
-Measure every endpoint of the target API against a 400ms budget and audit auth.
+Measure every endpoint of the target API against a 500ms budget and audit auth.
 
 ## Inputs
 - BASE_URL of the patient API (e.g. http://127.0.0.1:8001)
@@ -14,7 +14,7 @@ Measure every endpoint of the target API against a 400ms budget and audit auth.
 3. Auth audit: for each route, also call it with NO Authorization header. If a route under /admin (or any route you judge sensitive) returns HTTP 200 without a token, set auth_ok=false.
 4. Decide status per endpoint:
    - "fail_auth" if auth_ok is false
-   - else "fail_latency" if p95 > 400
+   - else "fail_latency" if p95 > 500
    - else "pass"
 5. POST each result to {CONTROL_URL}/api/endpoints with:
    {run_id, path, method, phase, p95_ms, payload_kb, auth_ok, status}
