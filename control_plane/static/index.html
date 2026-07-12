@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>API Doctor</title>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#111721; --line:#1e2836; --ink:#e7edf5;
+    --muted:#6b7a8f; --pass:#2ee6a6; --fail:#ff5c72; --warn:#ffb454;
+    --budget:#3a4d6b; --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:'Space Grotesk',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    background-image:radial-gradient(circle at 20% -10%,rgba(46,230,166,.06),transparent 40%);}
+  .wrap{max-width:1100px;margin:0 auto;padding:28px 22px 80px}
+  header{display:flex;align-items:baseline;justify-content:space-between;
+    border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:22px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .pulse{width:11px;height:11px;border-radius:50%;background:var(--pass);
+    box-shadow:0 0 0 0 rgba(46,230,166,.6);animation:p 1.8s infinite}
+  @keyframes p{0%{box-shadow:0 0 0 0 rgba(46,230,166,.5)}70%{box-shadow:0 0 0 10px rgba(46,230,166,0)}100%{box-shadow:0 0 0 0 rgba(46,230,166,0)}}
+  h1{font-size:20px;letter-spacing:-.02em;margin:0;font-weight:600}
+  h1 span{color:var(--muted);font-weight:400}
+  .status{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .status b{color:var(--ink)}
+  .scores{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:26px}
+  .score{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+  .score .k{font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+  .score .v{font-size:34px;font-weight:600;letter-spacing:-.03em;margin-top:6px;font-variant-numeric:tabular-nums}
+  .score .d{font-family:var(--mono);font-size:12px;margin-top:2px}
+  .up{color:var(--pass)} .down{color:var(--fail)}
+  .sec{font-family:var(--mono);font-size:12px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.1em;margin:8px 0 12px;display:flex;align-items:center;gap:10px}
+  .sec::after{content:"";flex:1;height:1px;background:var(--line)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+  .ep{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--muted);
+    border-radius:10px;padding:14px 16px;transition:border-color .4s,transform .2s}
+  .ep.pass{border-left-color:var(--pass)}
+  .ep.fail_latency{border-left-color:var(--fail)}
+  .ep.fail_auth{border-left-color:var(--warn)}
+  .ep .top{display:flex;justify-content:space-between;align-items:center}
+  .path{font-family:var(--mono);font-size:14px}
+  .method{font-family:var(--mono);font-size:10px;color:var(--muted);border:1px solid var(--line);
+    padding:1px 6px;border-radius:4px;margin-right:8px}
+  .tag{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em}
+  .tag.pass{background:rgba(46,230,166,.12);color:var(--pass)}
+  .tag.fail_latency{background:rgba(255,92,114,.12);color:var(--fail)}
+  .tag.fail_auth{background:rgba(255,180,84,.14);color:var(--warn)}
+  .bar{height:6px;background:#0c1119;border-radius:4px;margin-top:12px;position:relative;overflow:hidden}
+  .bar .fill{height:100%;border-radius:4px;transition:width .6s ease}
+  .bar .budget{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--budget)}
+  .meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px}
+  .meta b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .findings{display:flex;flex-direction:column;gap:10px}
+  .find{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .find .h{display:flex;justify-content:space-between;align-items:center}
+  .find .type{font-family:var(--mono);font-size:13px;color:var(--ink)}
+  .find .loc{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:4px}
+  .find .fix{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5}
+  .chip{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:20px;text-transform:uppercase}
+  .chip.found{background:rgba(255,92,114,.12);color:var(--fail)}
+  .chip.fixed{background:rgba(255,180,84,.14);color:var(--warn)}
+  .chip.verified{background:rgba(46,230,166,.12);color:var(--pass)}
+  .empty{color:var(--muted);font-family:var(--mono);font-size:13px;padding:40px;text-align:center;
+    border:1px dashed var(--line);border-radius:12px}
+  .prlink{font-family:var(--mono);font-size:12px;color:var(--pass);text-decoration:none;border-bottom:1px dashed}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="pulse"></div>
+      <h1>API&nbsp;Doctor <span>/ diagnostic run</span></h1>
+    </div>
+    <div class="status" id="status">waiting for a run…</div>
+  </header>
+
+  <div class="scores">
+    <div class="score"><div class="k">Endpoints passing</div><div class="v" id="s-pass">–</div><div class="d" id="s-pass-d"></div></div>
+    <div class="score"><div class="k">Avg p95 latency</div><div class="v" id="s-p95">–</div><div class="d" id="s-p95-d"></div></div>
+    <div class="score"><div class="k">Findings resolved</div><div class="v" id="s-find">–</div><div class="d" id="s-find-d"></div></div>
+  </div>
+
+  <div class="sec">Endpoints</div>
+  <div class="grid" id="eps"><div class="empty">No endpoint data yet.</div></div>
+
+  <div class="sec" style="margin-top:30px">Findings</div>
+  <div class="findings" id="finds"><div class="empty">No findings yet.</div></div>
+</div>
+
+<script>
+const BUDGET = 400;
+let runId = null;
+
+async function j(u,o){const r=await fetch(u,o);return r.json();}
+
+async function tick(){
+  if(runId===null){
+    const l = await j('/api/latest'); runId = l.run_id;
+    if(runId===null){return;}
+  }
+  const s = await j('/api/state/'+runId);
+  render(s);
+}
+
+function pct(ms){return Math.min(100, (ms/ (BUDGET*3)) *100);}
+
+function render(s){
+  const eps = s.endpoints||[], finds = s.findings||[];
+  // prefer "after" phase rows when present, else "before"
+  const byPath={};
+  eps.forEach(e=>{ if(!byPath[e.path] || e.phase==='after') byPath[e.path]=e; });
+  const rows = Object.values(byPath);
+
+  const st = document.getElementById('status');
+  if(s.run){ st.innerHTML = 'run <b>#'+s.run.id+'</b> · '+(s.run.status||'')+
+      (s.run.pr_url? ' · <a class="prlink" href="'+s.run.pr_url+'" target="_blank">view PR</a>':''); }
+
+  const passing = rows.filter(r=>r.status==='pass').length;
+  document.getElementById('s-pass').textContent = rows.length? passing+' / '+rows.length : '–';
+  const lat = rows.filter(r=>r.p95_ms!=null);
+  const avg = lat.length? Math.round(lat.reduce((a,b)=>a+b.p95_ms,0)/lat.length):0;
+  document.getElementById('s-p95').textContent = avg? avg+' ms':'–';
+  document.getElementById('s-p95-d').innerHTML = avg? (avg<=BUDGET?'<span class="up">within budget</span>':'<span class="down">over 400ms budget</span>'):'';
+  const verified = finds.filter(f=>f.status==='verified').length;
+  document.getElementById('s-find').textContent = finds.length? verified+' / '+finds.length:'–';
+
+  const g = document.getElementById('eps');
+  if(!rows.length){g.innerHTML='<div class="empty">No endpoint data yet.</div>';}
+  else{
+    g.innerHTML = rows.sort((a,b)=>a.path.localeCompare(b.path)).map(r=>{
+      const col = r.status==='pass'?'var(--pass)': r.status==='fail_auth'?'var(--warn)':'var(--fail)';
+      const w = pct(r.p95_ms||0);
+      const label = r.status==='fail_auth'?'no auth': r.status==='pass'?'pass':'over budget';
+      return `<div class="ep ${r.status}">
+        <div class="top">
+          <div><span class="method">${r.method||'GET'}</span><span class="path">${r.path}</span></div>
+          <span class="tag ${r.status}">${label}</span>
+        </div>
+        <div class="bar"><div class="fill" style="width:${w}%;background:${col}"></div>
+          <div class="budget" style="left:${pct(BUDGET)}%"></div></div>
+        <div class="meta"><span>p95 <b>${r.p95_ms!=null?Math.round(r.p95_ms)+' ms':'—'}</b></span>
+          <span>payload <b>${r.payload_kb!=null?r.payload_kb.toFixed(1)+' KB':'—'}</b></span>
+          <span>auth <b>${r.auth_ok? 'ok':'MISSING'}</b></span></div>
+      </div>`;}).join('');
+  }
+
+  const f = document.getElementById('finds');
+  if(!finds.length){f.innerHTML='<div class="empty">No findings yet.</div>';}
+  else{
+    f.innerHTML = finds.map(x=>`<div class="find">
+      <div class="h"><span class="type">${x.type}</span><span class="chip ${x.status}">${x.status}</span></div>
+      <div class="loc">${x.endpoint} · ${x.code_location||''}</div>
+      <div class="fix">${x.proposed_fix||''}</div></div>`).join('');
+  }
+}
+setInterval(tick, 1500); tick();
+// allow ?run=ID override for demos
+const q=new URLSearchParams(location.search); if(q.get('run')) runId=parseInt(q.get('run'));
+</script>
+</body>
+</html>
