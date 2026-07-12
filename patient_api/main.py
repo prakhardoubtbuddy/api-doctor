@@ -16,17 +16,19 @@ Run: uvicorn main:app --host 0.0.0.0 --port 8001
 """
 import sqlite3, time, os
 from fastapi import FastAPI, Header, HTTPException
-from contextlib import closing
+from contextlib import asynccontextmanager, closing
 from datetime import datetime
 
 DB = os.path.join(os.path.dirname(__file__), "patient.db")
-app = FastAPI(title="patient-api")
 
 
-# MODERNIZE TARGET: @app.on_event is deprecated; modern form is lifespan=...
-@app.on_event("startup")
-def _warm():
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
     _ = os.path.exists(DB)
+    yield
+
+
+app = FastAPI(title="patient-api", lifespan=lifespan)
 
 
 def db():
