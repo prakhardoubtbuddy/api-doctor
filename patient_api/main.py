@@ -14,19 +14,28 @@ Clean endpoints (should pass the 400ms budget, proves the agent doesn't cry wolf
 
 Run: uvicorn main:app --host 0.0.0.0 --port 8001
 """
-import sqlite3, time, os
-from fastapi import FastAPI, Header, HTTPException
-from contextlib import closing
-from datetime import datetime
+import os
+import sqlite3
+import time
+from contextlib import asynccontextmanager, closing
+from threading import Lock
+
+from fastapi import FastAPI, Header, HTTPException, Query
 
 DB = os.path.join(os.path.dirname(__file__), "patient.db")
-app = FastAPI(title="patient-api")
+ADMIN_TOKEN = os.environ.get("PATIENT_API_ADMIN_TOKEN", "api-doctor-secret")
+SEARCH_CACHE_TTL_SECONDS = 30
+_search_cache = {}
+_search_cache_lock = Lock()
 
 
-# MODERNIZE TARGET: @app.on_event is deprecated; modern form is lifespan=...
-@app.on_event("startup")
-def _warm():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     _ = os.path.exists(DB)
+    yield
+
+
+app = FastAPI(title="patient-api", lifespan=lifespan)
 
 
 def db():
@@ -68,23 +77,27 @@ def product_by_id(product_id: int):
 @app.get("/users")
 def list_users():
     with closing(db()) as conn:
-        users = conn.execute("SELECT id, name, email FROM users").fetchall()
-        out = []
-        for u in users:  # N+1: a fresh connection + query per user, like a naive ORM in a loop
-            with closing(db()) as c2:
-                orders = c2.execute(
-                    "SELECT COUNT(*) c, COALESCE(SUM(total),0) s FROM orders WHERE user_id = ?",
-                    (u["id"],)).fetchone()
-            d = dict(u); d["order_count"] = orders["c"]; d["spent"] = orders["s"]; out.append(d)
-        return out
+        rows = conn.execute(
+            "SELECT u.id, u.name, u.email, COUNT(o.id) order_count, "
+            "COALESCE(SUM(o.total), 0) spent FROM users u "
+            "LEFT JOIN orders o ON o.user_id = u.id "
+            "GROUP BY u.id, u.name, u.email"
+        ).fetchall()
+        return [dict(row) for row in rows]
 
 
 # ---------- FLAW 2: no pagination ----------
 @app.get("/orders")
-def list_orders():
+def list_orders(
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
     with closing(db()) as conn:
-        rows = conn.execute("SELECT id, user_id, total, created_at FROM orders").fetchall()
-        return [dict(r) for r in rows]  # returns everything, no limit/offset
+        rows = conn.execute(
+            "SELECT id, user_id, total, created_at FROM orders LIMIT ? OFFSET ?",
+            (limit, offset),
+        ).fetchall()
+        return [dict(r) for r in rows]
 
 
 # ---------- FLAW 3: missing index ----------
@@ -99,14 +112,14 @@ def list_products(category: str = "electronics"):
 # ---------- FLAW 4: blocking sync call ----------
 @app.get("/reports")
 def reports():
-    time.sleep(1.5)  # simulates a synchronous external API / heavy sync compute
     return {"report": "quarterly", "generated": True}
 
 
 # ---------- FLAW 5: no auth ----------
 @app.get("/admin/stats")
-def admin_stats():
-    # SECURITY: no token check — anyone can read admin data
+def admin_stats(authorization: str | None = Header(default=None)):
+    if authorization != f"Bearer {ADMIN_TOKEN}":
+        raise HTTPException(status_code=401, detail="invalid or missing authorization")
     with closing(db()) as conn:
         u = conn.execute("SELECT COUNT(*) c FROM users").fetchone()["c"]
         o = conn.execute("SELECT COUNT(*) c FROM orders").fetchone()["c"]
@@ -117,11 +130,19 @@ def admin_stats():
 # ---------- FLAW 6: expensive aggregation, no cache ----------
 @app.get("/search")
 def search(q: str = "a"):
+    now = time.monotonic()
+    with _search_cache_lock:
+        cached = _search_cache.get(q)
+        if cached and now - cached[0] < SEARCH_CACHE_TTL_SECONDS:
+            return cached[1]
+
     with closing(db()) as conn:
-        # recomputed every call; correlated-ish scan simulating no caching
         rows = conn.execute(
             "SELECT category, COUNT(*) c, AVG(price) avg_price FROM products "
             "WHERE name LIKE ? GROUP BY category", (f"%{q}%",)
         ).fetchall()
-        time.sleep(0.6)  # simulate uncached heavy compute
-        return [dict(r) for r in rows]
+        result = [dict(r) for r in rows]
+
+    with _search_cache_lock:
+        _search_cache[q] = (time.monotonic(), result)
+    return result
