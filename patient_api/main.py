@@ -22,6 +22,12 @@ DB = os.path.join(os.path.dirname(__file__), "patient.db")
 app = FastAPI(title="patient-api")
 
 
+# MODERNIZE TARGET: @app.on_event is deprecated; modern form is lifespan=...
+@app.on_event("startup")
+def _warm():
+    _ = os.path.exists(DB)
+
+
 def db():
     conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row

@@ -21,3 +21,9 @@ Apply the fixes, open a PR, redeploy, and re-benchmark to prove improvement.
 
 ## Rule
 Only mark "verified" when the after-benchmark actually passes. No wishful status.
+
+## Modernize pass (Migrate-mode taste, same PR)
+After perf/security fixes, do ONE modernization: detect the deprecated
+@app.on_event("startup") hook and replace it with the FastAPI lifespan pattern
+(asynccontextmanager + FastAPI(lifespan=...)). Same branch/PR. Record it as a
+finding of type "deprecated_pattern" and label it in the PR body.
