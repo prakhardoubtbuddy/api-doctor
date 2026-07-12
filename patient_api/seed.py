@@ -12,7 +12,7 @@ c.executescript("""
 CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, email TEXT);
 CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, category TEXT, price REAL);
 CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER, total REAL, created_at TEXT);
--- NOTE: intentionally NO index on products.category (that's flaw #3)
+CREATE INDEX idx_products_category ON products(category);
 CREATE INDEX idx_orders_user ON orders(user_id);
 """)
 
