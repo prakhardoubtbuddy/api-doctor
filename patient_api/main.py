@@ -102,10 +102,17 @@ def list_orders(
 
 # ---------- FLAW 3: missing index ----------
 @app.get("/products")
-def list_products(category: str = "electronics"):
+def list_products(
+    category: str = "electronics",
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
     with closing(db()) as conn:
-        # products.category has no index -> full table scan
-        rows = conn.execute("SELECT id, name, category, price FROM products WHERE category = ?", (category,)).fetchall()
+        rows = conn.execute(
+            "SELECT id, name, category, price FROM products "
+            "WHERE category = ? LIMIT ? OFFSET ?",
+            (category, limit, offset),
+        ).fetchall()
         return [dict(r) for r in rows]
 
 
